@@ -97,42 +97,37 @@ async def _call_claude(user_message: str) -> str:
 
 
 async def _llm_reply(user_message: str) -> str:
-    """Try Groq → DeepSeek → Claude → OpenAI; first key that works wins."""
+    """
+    LLM fallback chain — free tiers first, paid last.
+    Set whichever key(s) you have; first working one wins.
 
-    # 1. Groq — free tier, Llama 3.1 8B, very fast
-    key = os.getenv("GROQ_API_KEY")
-    if key:
-        reply = await _call_openai_compat(
-            "https://api.groq.com/openai/v1/chat/completions",
-            key, "llama-3.1-8b-instant", user_message,
-        )
-        if reply:
-            return reply
+    Free:  Groq → Gemini → OpenRouter → Cerebras
+    Paid:  DeepSeek → Anthropic → OpenAI
+    """
+    _oc = _call_openai_compat  # shorthand
 
-    # 2. DeepSeek (OpenAI-compatible)
-    key = os.getenv("DEEPSEEK_API_KEY")
-    if key:
-        reply = await _call_openai_compat(
-            "https://api.deepseek.com/v1/chat/completions",
-            key, "deepseek-chat", user_message,
-        )
-        if reply:
-            return reply
+    free = [
+        ("GROQ_API_KEY",       "https://api.groq.com/openai/v1/chat/completions",                         "llama-3.1-8b-instant"),
+        ("GEMINI_API_KEY",     "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "gemini-2.0-flash-lite"),
+        ("OPENROUTER_API_KEY", "https://openrouter.ai/api/v1/chat/completions",                           "meta-llama/llama-3.1-8b-instruct:free"),
+        ("CEREBRAS_API_KEY",   "https://api.cerebras.ai/v1/chat/completions",                             "llama3.1-8b"),
+    ]
+    paid = [
+        ("DEEPSEEK_API_KEY",   "https://api.deepseek.com/v1/chat/completions",   "deepseek-chat"),
+        ("OPENAI_API_KEY",     "https://api.openai.com/v1/chat/completions",      "gpt-4o-mini"),
+    ]
 
-    # 3. Anthropic Claude Haiku
+    for env_var, url, model in free + paid:
+        key = os.getenv(env_var)
+        if key:
+            reply = await _oc(url, key, model, user_message)
+            if reply:
+                return reply
+
+    # Anthropic uses a different request format
     reply = await _call_claude(user_message)
     if reply:
         return reply
-
-    # 4. OpenAI GPT-4o-mini
-    key = os.getenv("OPENAI_API_KEY")
-    if key:
-        reply = await _call_openai_compat(
-            "https://api.openai.com/v1/chat/completions",
-            key, "gpt-4o-mini", user_message,
-        )
-        if reply:
-            return reply
 
     return (
         "Hmm, I no fully understand wetin you mean. "

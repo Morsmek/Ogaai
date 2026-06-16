@@ -242,33 +242,44 @@ async function buildReply(parsed, action, raw, env) {
   return 'Oga, I hear you but I no fit do that one right now. Try: *check my balance*, *buy airtime*, or *send money*.';
 }
 
-// ─── LLM: CF Workers AI (free) → DeepSeek → Anthropic → OpenAI ──────────────
+// ─── LLM chain ────────────────────────────────────────────────────────────────
+// Free first: CF Workers AI → Groq → Gemini → OpenRouter → Cerebras
+// Paid last:  DeepSeek → Anthropic → OpenAI
+
+const FREE_PROVIDERS = [
+  ['GROQ_API_KEY',       'https://api.groq.com/openai/v1/chat/completions',                         'llama-3.1-8b-instant'],
+  ['GEMINI_API_KEY',     'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'gemini-2.0-flash-lite'],
+  ['OPENROUTER_API_KEY', 'https://openrouter.ai/api/v1/chat/completions',                           'meta-llama/llama-3.1-8b-instruct:free'],
+  ['CEREBRAS_API_KEY',   'https://api.cerebras.ai/v1/chat/completions',                             'llama3.1-8b'],
+];
+
+const PAID_PROVIDERS = [
+  ['DEEPSEEK_API_KEY', 'https://api.deepseek.com/v1/chat/completions', 'deepseek-chat'],
+  ['OPENAI_API_KEY',   'https://api.openai.com/v1/chat/completions',   'gpt-4o-mini'],
+];
 
 async function llm(message, env) {
-  // 1. Cloudflare Workers AI — free, no API key, Llama 3.1 8B
+  // CF Workers AI — always free, no key needed
   if (env?.AI) {
     try {
       const r = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-        messages: [
-          { role: 'system', content: SYS },
-          { role: 'user',   content: message },
-        ],
+        messages: [{ role: 'system', content: SYS }, { role: 'user', content: message }],
         max_tokens: 300,
       });
       if (r?.response) return r.response;
     } catch { /* fall through */ }
   }
 
-  // 2. DeepSeek (OpenAI-compatible)
-  if (env?.DEEPSEEK_API_KEY) {
-    const reply = await openAICompat(
-      'https://api.deepseek.com/v1/chat/completions',
-      env.DEEPSEEK_API_KEY, 'deepseek-chat', message,
-    );
-    if (reply) return reply;
+  // Free + paid providers (all OpenAI-compatible except Anthropic)
+  for (const [envKey, url, model] of [...FREE_PROVIDERS, ...PAID_PROVIDERS]) {
+    const key = env?.[envKey];
+    if (key) {
+      const reply = await openAICompat(url, key, model, message);
+      if (reply) return reply;
+    }
   }
 
-  // 3. Anthropic Claude Haiku
+  // Anthropic (different request format)
   if (env?.ANTHROPIC_API_KEY) {
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -284,15 +295,6 @@ async function llm(message, env) {
     } catch { /* fall through */ }
   }
 
-  // 4. OpenAI GPT-4o-mini
-  if (env?.OPENAI_API_KEY) {
-    const reply = await openAICompat(
-      'https://api.openai.com/v1/chat/completions',
-      env.OPENAI_API_KEY, 'gpt-4o-mini', message,
-    );
-    if (reply) return reply;
-  }
-
   return 'Hmm, I no fully understand wetin you mean. Try: *check my balance*, *buy 500 airtime*, or *send 2k to 08012345678*.';
 }
 
@@ -300,12 +302,10 @@ async function openAICompat(url, apiKey, model, message) {
   try {
     const r = await fetch(url, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`,
-                 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model, max_tokens: 300,
-        messages: [{ role: 'system', content: SYS },
-                   { role: 'user',   content: message }],
+        messages: [{ role: 'system', content: SYS }, { role: 'user', content: message }],
       }),
     });
     const d = await r.json();
