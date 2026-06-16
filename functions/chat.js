@@ -2,11 +2,15 @@
  * OgaAI /chat — Cloudflare Pages Function
  *
  * Ported from:
- *   app/intent_parser.py  → parse()
- *   app/actions.py        → dispatch()
+ *   app/intent_parser.py   → parse()
+ *   app/actions.py         → dispatch()
  *   app/response_engine.py → buildReply()
  *
- * LLM: Claude Haiku via Anthropic API (set ANTHROPIC_API_KEY in CF Pages env)
+ * LLM priority (free first):
+ *   1. Cloudflare Workers AI  — free, no key, Llama 3.1 8B (env.AI binding)
+ *   2. DeepSeek               — set DEEPSEEK_API_KEY in CF Pages env
+ *   3. Anthropic Claude Haiku — set ANTHROPIC_API_KEY in CF Pages env
+ *   4. OpenAI GPT-4o-mini     — set OPENAI_API_KEY in CF Pages env
  */
 
 export async function onRequestPost(context) {
@@ -238,21 +242,33 @@ async function buildReply(parsed, action, raw, env) {
   return 'Oga, I hear you but I no fit do that one right now. Try: *check my balance*, *buy airtime*, or *send money*.';
 }
 
-// ─── LLM: DeepSeek → Anthropic → static fallback ─────────────────────────────
+// ─── LLM: CF Workers AI (free) → DeepSeek → Anthropic → OpenAI ──────────────
 
 async function llm(message, env) {
-  // 1. DeepSeek (OpenAI-compatible)
+  // 1. Cloudflare Workers AI — free, no API key, Llama 3.1 8B
+  if (env?.AI) {
+    try {
+      const r = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+        messages: [
+          { role: 'system', content: SYS },
+          { role: 'user',   content: message },
+        ],
+        max_tokens: 300,
+      });
+      if (r?.response) return r.response;
+    } catch { /* fall through */ }
+  }
+
+  // 2. DeepSeek (OpenAI-compatible)
   if (env?.DEEPSEEK_API_KEY) {
     const reply = await openAICompat(
       'https://api.deepseek.com/v1/chat/completions',
-      env.DEEPSEEK_API_KEY,
-      'deepseek-chat',
-      message,
+      env.DEEPSEEK_API_KEY, 'deepseek-chat', message,
     );
     if (reply) return reply;
   }
 
-  // 2. Anthropic Claude Haiku
+  // 3. Anthropic Claude Haiku
   if (env?.ANTHROPIC_API_KEY) {
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -268,13 +284,11 @@ async function llm(message, env) {
     } catch { /* fall through */ }
   }
 
-  // 3. OpenAI GPT-4o-mini
+  // 4. OpenAI GPT-4o-mini
   if (env?.OPENAI_API_KEY) {
     const reply = await openAICompat(
       'https://api.openai.com/v1/chat/completions',
-      env.OPENAI_API_KEY,
-      'gpt-4o-mini',
-      message,
+      env.OPENAI_API_KEY, 'gpt-4o-mini', message,
     );
     if (reply) return reply;
   }

@@ -97,9 +97,19 @@ async def _call_claude(user_message: str) -> str:
 
 
 async def _llm_reply(user_message: str) -> str:
-    """Try DeepSeek → Claude → OpenAI in order; first key that works wins."""
+    """Try Groq → DeepSeek → Claude → OpenAI; first key that works wins."""
 
-    # 1. DeepSeek (OpenAI-compatible, cheapest)
+    # 1. Groq — free tier, Llama 3.1 8B, very fast
+    key = os.getenv("GROQ_API_KEY")
+    if key:
+        reply = await _call_openai_compat(
+            "https://api.groq.com/openai/v1/chat/completions",
+            key, "llama-3.1-8b-instant", user_message,
+        )
+        if reply:
+            return reply
+
+    # 2. DeepSeek (OpenAI-compatible)
     key = os.getenv("DEEPSEEK_API_KEY")
     if key:
         reply = await _call_openai_compat(
@@ -109,12 +119,12 @@ async def _llm_reply(user_message: str) -> str:
         if reply:
             return reply
 
-    # 2. Anthropic Claude Haiku
+    # 3. Anthropic Claude Haiku
     reply = await _call_claude(user_message)
     if reply:
         return reply
 
-    # 3. OpenAI GPT-4o-mini
+    # 4. OpenAI GPT-4o-mini
     key = os.getenv("OPENAI_API_KEY")
     if key:
         reply = await _call_openai_compat(

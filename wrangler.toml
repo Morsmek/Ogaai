@@ -1,3 +1,8 @@
 name = "ogaai"
 compatibility_date = "2025-01-01"
 pages_build_output_dir = "."
+
+# Cloudflare Workers AI — free, no API key needed
+# Enable in CF Pages dashboard: Settings → Functions → AI bindings → add "AI"
+[ai]
+binding = "AI"
