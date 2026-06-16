@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OgaAI — Your Pidgin Money Assistant</title>
+  <style>
+    :root {
+      --green-dark:  #1a5c2e;
+      --green-mid:   #25883f;
+      --green-light: #3ab55e;
+      --green-bubble:#dcf8c6;
+      --white:       #ffffff;
+      --bg-chat:     #e5ddd5;
+      --bg-header:   #1a5c2e;
+      --bg-input:    #f0f0f0;
+      --text:        #111;
+      --muted:       #667;
+      --shadow:      rgba(0,0,0,.12);
+      --radius:      18px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-chat);
+      color: var(--text);
+    }
+
+    /* ── SHELL ─────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      background: var(--white);
+      box-shadow: 0 0 40px var(--shadow);
+    }
+
+    /* ── HEADER ────────────────────────────────────── */
+    #header {
+      background: var(--bg-header);
+      color: #fff;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    #header img {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.35);
+      object-fit: cover;
+    }
+
+    #header .info { flex: 1; }
+    #header .info h1 { font-size: 1.05rem; font-weight: 700; }
+    #header .info p  { font-size: .78rem; opacity: .82; margin-top: 1px; }
+
+    #header .status-dot {
+      width: 10px; height: 10px;
+      background: #4eff7a;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 6px #4eff7a;
+    }
+
+    /* ── CHAT WINDOW ───────────────────────────────── */
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 14px;
+      background: var(--bg-chat);
+      background-image:
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      scroll-behavior: smooth;
+    }
+
+    /* ── DATE DIVIDER ──────────────────────────────── */
+    .date-divider {
+      text-align: center;
+      margin: 12px 0;
+    }
+    .date-divider span {
+      background: rgba(225,245,254,.85);
+      color: var(--muted);
+      font-size: .72rem;
+      padding: 3px 10px;
+      border-radius: 8px;
+    }
+
+    /* ── BUBBLES ───────────────────────────────────── */
+    .bubble-row {
+      display: flex;
+      margin-bottom: 4px;
+    }
+    .bubble-row.user  { justify-content: flex-end; }
+    .bubble-row.bot   { justify-content: flex-start; }
+
+    .bubble {
+      max-width: 78%;
+      padding: 8px 12px 6px;
+      border-radius: var(--radius);
+      font-size: .93rem;
+      line-height: 1.45;
+      position: relative;
+      box-shadow: 0 1px 2px var(--shadow);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .bubble-row.user .bubble {
+      background: var(--green-bubble);
+      border-bottom-right-radius: 4px;
+    }
+    .bubble-row.bot .bubble {
+      background: var(--white);
+      border-bottom-left-radius: 4px;
+    }
+
+    .bubble .ts {
+      display: block;
+      text-align: right;
+      font-size: .68rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    /* intent tag inside bot bubbles */
+    .bubble .intent-tag {
+      display: inline-block;
+      background: var(--green-mid);
+      color: #fff;
+      font-size: .65rem;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-bottom: 4px;
+      letter-spacing: .3px;
+    }
+
+    /* ── TYPING INDICATOR ──────────────────────────── */
+    #typing {
+      display: none;
+      justify-content: flex-start;
+      margin-bottom: 4px;
+    }
+    #typing .bubble {
+      background: var(--white);
+      border-bottom-left-radius: 4px;
+      padding: 10px 14px;
+    }
+    .dot-row { display: flex; gap: 4px; align-items: center; }
+    .dot {
+      width: 7px; height: 7px;
+      background: #999;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: .2s; }
+    .dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes bounce {
+      0%,80%,100% { transform: translateY(0); }
+      40%          { transform: translateY(-6px); }
+    }
+
+    /* ── QUICK CHIPS ───────────────────────────────── */
+    #chips {
+      display: flex;
+      gap: 8px;
+      padding: 8px 14px;
+      overflow-x: auto;
+      background: var(--white);
+      border-top: 1px solid #eee;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    #chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0;
+      padding: 6px 13px;
+      background: #e8f5e9;
+      color: var(--green-dark);
+      border: 1px solid #c8e6c9;
+      border-radius: 999px;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .chip:hover { background: #c8e6c9; }
+
+    /* ── INPUT BAR ─────────────────────────────────── */
+    #input-bar {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding: 10px 14px 14px;
+      background: var(--white);
+      border-top: 1px solid #eee;
+      flex-shrink: 0;
+    }
+
+    #msg-input {
+      flex: 1;
+      resize: none;
+      border: 1.5px solid #ddd;
+      border-radius: 24px;
+      padding: 10px 16px;
+      font-size: .95rem;
+      font-family: inherit;
+      outline: none;
+      line-height: 1.4;
+      max-height: 120px;
+      overflow-y: auto;
+      transition: border-color .2s;
+    }
+    #msg-input:focus { border-color: var(--green-mid); }
+    #msg-input::placeholder { color: #aaa; }
+
+    #send-btn {
+      width: 44px; height: 44px;
+      flex-shrink: 0;
+      background: var(--green-mid);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s;
+    }
+    #send-btn:hover  { background: var(--green-dark); }
+    #send-btn:active { transform: scale(.93); }
+    #send-btn svg { width: 20px; height: 20px; fill: #fff; }
+
+    /* ── WELCOME CARD ──────────────────────────────── */
+    #welcome {
+      background: rgba(255,255,255,.92);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin: 8px 4px 16px;
+      box-shadow: 0 1px 4px var(--shadow);
+    }
+    #welcome h2 {
+      font-size: 1rem;
+      color: var(--green-dark);
+      margin-bottom: 6px;
+    }
+    #welcome ul {
+      list-style: none;
+      padding: 0;
+      font-size: .88rem;
+      color: #444;
+      line-height: 1.9;
+    }
+    #welcome ul li::before { content: "•  "; color: var(--green-mid); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <img src="/static/logo.png" alt="OgaAI" />
+    <div class="info">
+      <h1>OgaAI</h1>
+      <p>Your Pidgin money assistant</p>
+    </div>
+    <div class="status-dot" title="Online"></div>
+  </div>
+
+  <!-- CHAT WINDOW -->
+  <div id="chat">
+    <div class="date-divider"><span>Today</span></div>
+
+    <!-- Welcome card -->
+    <div id="welcome">
+      <h2>How far! I be OgaAI 🤖🇳🇬</h2>
+      <ul>
+        <li>Check your balance</li>
+        <li>Buy airtime or data (MTN, Airtel, Glo, 9mobile)</li>
+        <li>Send money to anyone</li>
+        <li>Pay bills (coming soon)</li>
+      </ul>
+      <p style="font-size:.8rem;color:var(--muted);margin-top:8px;">Type in English, Pidgin, or Yoruba — I sabi all!</p>
+    </div>
+
+    <!-- Typing indicator -->
+    <div id="typing" class="bubble-row bot">
+      <div class="bubble">
+        <div class="dot-row">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK CHIPS -->
+  <div id="chips">
+    <div class="chip" onclick="sendChip('abeg check my balance')">💰 Check balance</div>
+    <div class="chip" onclick="sendChip('buy me 500 naira airtime')">📱 Buy airtime</div>
+    <div class="chip" onclick="sendChip('get me 1000 naira MTN data')">🌐 Buy data</div>
+    <div class="chip" onclick="sendChip('send 2k to 08012345678')">💸 Send money</div>
+    <div class="chip" onclick="sendChip('how far')">👋 Greet</div>
+  </div>
+
+  <!-- INPUT BAR -->
+  <div id="input-bar">
+    <textarea id="msg-input" rows="1" placeholder="Type a message…" maxlength="500"></textarea>
+    <button id="send-btn" onclick="sendMessage()" aria-label="Send">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+      </svg>
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const chat     = document.getElementById('chat');
+  const input    = document.getElementById('msg-input');
+  const typing   = document.getElementById('typing');
+  const SESSION  = 'web_' + Math.random().toString(36).slice(2, 10);
+
+  // ── auto-resize textarea ───────────────────────────
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // ── send chip shortcut ─────────────────────────────
+  function sendChip(text) {
+    input.value = text;
+    sendMessage();
+  }
+
+  // ── timestamp helper ──────────────────────────────
+  function nowTime() {
+    return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  // ── append user bubble ────────────────────────────
+  function appendUser(text) {
+    const row = document.createElement('div');
+    row.className = 'bubble-row user';
+    row.innerHTML = `<div class="bubble">${escHtml(text)}<span class="ts">${nowTime()}</span></div>`;
+    chat.insertBefore(row, typing);
+    scrollBottom();
+  }
+
+  // ── append bot bubble ─────────────────────────────
+  function appendBot(reply, intent) {
+    const row = document.createElement('div');
+    row.className = 'bubble-row bot';
+    const tag = (intent && intent !== 'UNKNOWN')
+      ? `<span class="intent-tag">${intent}</span><br/>` : '';
+    row.innerHTML = `<div class="bubble">${tag}${escHtml(reply)}<span class="ts">${nowTime()} ✓</span></div>`;
+    chat.insertBefore(row, typing);
+    scrollBottom();
+  }
+
+  function scrollBottom() {
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function escHtml(str) {
+    return str
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/\n/g,'<br/>');
+  }
+
+  // ── main send ─────────────────────────────────────
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+
+    appendUser(text);
+
+    // show typing indicator
+    typing.style.display = 'flex';
+    scrollBottom();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: text, session_id: SESSION}),
+      });
+      const data = await res.json();
+      typing.style.display = 'none';
+      appendBot(data.reply, data.intent);
+    } catch (err) {
+      typing.style.display = 'none';
+      appendBot('Wahala dey o — server no respond. Try again.', null);
+    }
+  }
+</script>
+
+</body>
+</html>
