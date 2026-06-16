@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OgaAI — Your Pidgin WhatsApp Money Bot</title>
+  <style>
+    :root {
+      --green-dark:  #1a5c2e;
+      --green-mid:   #2a8a45;
+      --green-light: #3ab55e;
+      --white:       #ffffff;
+      --bg:          #f4f7f4;
+      --card:        #ffffff;
+      --text:        #1a2e1a;
+      --muted:       #6b826b;
+      --border:      #d4e8d4;
+      --accent:      #e6f4ea;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── HEADER ────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+      color: var(--white);
+      padding: 40px 24px 60px;
+      text-align: center;
+    }
+
+    header img.logo {
+      width: 96px;
+      height: 96px;
+      border-radius: 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    header h1 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    header p.tagline {
+      margin-top: 8px;
+      font-size: 1.1rem;
+      opacity: 0.88;
+    }
+
+    /* ── HERO WAVE ─────────────────────────────────── */
+    .wave {
+      margin-top: -2px;
+      fill: var(--bg);
+    }
+
+    /* ── MAIN CONTENT ──────────────────────────────── */
+    main {
+      max-width: 860px;
+      margin: -32px auto 0;
+      padding: 0 20px 60px;
+    }
+
+    /* ── CARDS ─────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+
+    .card h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--green-dark);
+      margin-bottom: 16px;
+    }
+
+    /* ── COMMAND TABLE ─────────────────────────────── */
+    .cmd-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    .cmd-table th {
+      background: var(--accent);
+      color: var(--green-dark);
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+    }
+    .cmd-table td { padding: 10px 14px; border-top: 1px solid var(--border); }
+    .cmd-table tr:hover td { background: var(--accent); }
+    .cmd-table code {
+      background: #e8f5e9;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.88rem;
+      color: var(--green-dark);
+    }
+    .badge {
+      display: inline-block;
+      background: var(--green-light);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 2px 6px;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── ARCHITECTURE ──────────────────────────────── */
+    .arch {
+      background: #0d1f0d;
+      color: #7eff8b;
+      border-radius: 12px;
+      padding: 20px 24px;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    /* ── PLAYGROUNDS ───────────────────────────────── */
+    #playground { display: flex; gap: 10px; flex-wrap: wrap; }
+    #playground input {
+      flex: 1;
+      min-width: 200px;
+      padding: 11px 16px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #playground input:focus { border-color: var(--green-mid); }
+    #playground button {
+      padding: 11px 22px;
+      background: var(--green-mid);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #playground button:hover { background: var(--green-dark); }
+    #result {
+      margin-top: 14px;
+      padding: 16px;
+      background: var(--accent);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      display: none;
+    }
+    #result .intent-badge {
+      display: inline-block;
+      background: var(--green-dark);
+      color: #fff;
+      border-radius: 6px;
+      padding: 2px 10px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      margin-bottom: 8px;
+    }
+    #result .reply-text {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px 16px;
+      border-left: 4px solid var(--green-mid);
+      white-space: pre-wrap;
+    }
+
+    /* ── OPEN SOURCE PILLS ─────────────────────────── */
+    .repo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .repo-pill {
+      background: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.88rem;
+    }
+    .repo-pill strong { display: block; color: var(--green-dark); margin-bottom: 4px; }
+    .repo-pill span { color: var(--muted); font-size: 0.82rem; }
+
+    /* ── FOOTER ────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 32px 20px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--green-mid); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <img class="logo" src="/static/logo.png" alt="OgaAI Logo" />
+  <h1>OgaAI</h1>
+  <p class="tagline">Your personal WhatsApp money assistant wey sabi Pidgin 🇳🇬</p>
+</header>
+
+<svg class="wave" viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg">
+  <path d="M0,40 C360,80 1080,0 1440,40 L1440,60 L0,60 Z"/>
+</svg>
+
+<main>
+
+  <!-- What It Does -->
+  <div class="card">
+    <h2>What OgaAI Can Do</h2>
+    <table class="cmd-table">
+      <thead>
+        <tr><th>You say…</th><th>OgaAI understands</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>abeg check my balance</code></td><td>CHECK_BALANCE</td><td><span class="badge">LIVE</span></td></tr>
+        <tr><td><code>buy me 500 naira airtime</code></td><td>BUY_AIRTIME (₦500)</td><td><span class="badge">LIVE</span></td></tr>
+        <tr><td><code>get me 1000 naira MTN data</code></td><td>BUY_DATA (₦1000, MTN)</td><td><span class="badge">LIVE</span></td></tr>
+        <tr><td><code>send 2k to my guy</code></td><td>SEND_MONEY (₦2000)</td><td><span class="badge">LIVE</span></td></tr>
+        <tr><td><code>jẹ kí n san owo ina mi</code></td><td>PAY_BILL (Yoruba)</td><td><span class="badge" style="background:#999">V2</span></td></tr>
+        <tr><td><code>how far</code></td><td>GREETING</td><td><span class="badge">LIVE</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Live Playground -->
+  <div class="card">
+    <h2>Try the Parser</h2>
+    <p style="margin-bottom:14px;color:var(--muted);font-size:.93rem;">Type any message below — see how OgaAI understands it.</p>
+    <div id="playground">
+      <input id="msgInput" type="text" placeholder="E.g. abeg check my balance" />
+      <button onclick="testMessage()">Send</button>
+    </div>
+    <div id="result">
+      <div class="intent-badge" id="intentLabel">—</div>
+      <div class="reply-text" id="replyText"></div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="card">
+    <h2>Architecture</h2>
+    <pre class="arch">User (WhatsApp)
+      │
+      ▼
+FastAPI Webhook (/webhook)
+      │
+      ▼
+Intent Parser (app/intent_parser.py)
+  ├── Regex/keyword rules  (fast, free)
+  └── Pidgin + Yoruba normalisation layer
+      │
+      ▼
+Action Backend (app/actions.py)
+  ├── CHECK_BALANCE
+  ├── BUY_AIRTIME   ← cowriesys/airtime
+  ├── BUY_DATA      ← cowriesys/airtime
+  ├── SEND_MONEY    ← tomiiide/nigerian-banks
+  └── PAY_BILL      (coming in V2)
+      │
+      ▼
+Response Engine (app/response_engine.py)
+  ├── Direct action message  (fast path)
+  └── LLM: Claude Haiku / GPT-4o-mini fallback
+      │
+      ▼
+WhatsApp Cloud API → User</pre>
+  </div>
+
+  <!-- Open Source Foundation -->
+  <div class="card">
+    <h2>Open Source Foundation</h2>
+    <div class="repo-grid">
+      <div class="repo-pill">
+        <strong>LPMatrix/owo</strong>
+        <span>Nigerian NLU intent parser</span>
+      </div>
+      <div class="repo-pill">
+        <strong>saheedniy02/Llama3-8b-Naija_v1</strong>
+        <span>Llama 3 fine-tuned on Nigerian data</span>
+      </div>
+      <div class="repo-pill">
+        <strong>cowriesys/airtime</strong>
+        <span>Airtime &amp; data top-up API</span>
+      </div>
+      <div class="repo-pill">
+        <strong>tomiiide/nigerian-banks</strong>
+        <span>Nigerian bank codes dataset</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setup -->
+  <div class="card">
+    <h2>Quick Setup</h2>
+    <pre style="background:#f8fbf8;border-radius:8px;padding:16px;font-size:.88rem;overflow-x:auto;border:1px solid var(--border)"># 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Configure environment
+cp .env.example .env
+# Fill in WHATSAPP_TOKEN and WHATSAPP_PHONE_ID
+
+# 3. Run
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# 4. Expose to WhatsApp (dev)
+ngrok http 8000
+# Then set webhook: https://&lt;your-ngrok&gt;.ngrok.io/webhook
+# Verify token: ogaai_verify_2024</pre>
+  </div>
+
+</main>
+
+<footer>
+  OgaAI &mdash; Built for the 220 million Nigerians who deserve a bot that speaks their language.<br/>
+  <a href="/health">Health check</a> &middot; <a href="/docs">API docs</a>
+</footer>
+
+<script>
+  async function testMessage() {
+    const input = document.getElementById('msgInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const btn = document.querySelector('#playground button');
+    btn.textContent = 'Sending…';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/test', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: msg})
+      });
+      const data = await res.json();
+      document.getElementById('intentLabel').textContent =
+        data.intent + (data.confidence ? ` (${Math.round(data.confidence * 100)}%)` : '');
+      document.getElementById('replyText').textContent = data.reply;
+      document.getElementById('result').style.display = 'block';
+    } catch(e) {
+      document.getElementById('replyText').textContent = 'Error: ' + e.message;
+      document.getElementById('result').style.display = 'block';
+    }
+
+    btn.textContent = 'Send';
+    btn.disabled = false;
+  }
+
+  document.getElementById('msgInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') testMessage();
+  });
+</script>
+
+</body>
+</html>
