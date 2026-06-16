@@ -238,13 +238,27 @@ async function buildReply(parsed, action, raw, env) {
   return 'Oga, I hear you but I no fit do that one right now. Try: *check my balance*, *buy airtime*, or *send money*.';
 }
 
+// ─── LLM: DeepSeek → Anthropic → static fallback ─────────────────────────────
+
 async function llm(message, env) {
-  const key = env?.ANTHROPIC_API_KEY;
-  if (key) {
+  // 1. DeepSeek (OpenAI-compatible)
+  if (env?.DEEPSEEK_API_KEY) {
+    const reply = await openAICompat(
+      'https://api.deepseek.com/v1/chat/completions',
+      env.DEEPSEEK_API_KEY,
+      'deepseek-chat',
+      message,
+    );
+    if (reply) return reply;
+  }
+
+  // 2. Anthropic Claude Haiku
+  if (env?.ANTHROPIC_API_KEY) {
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01',
+        headers: { 'x-api-key': env.ANTHROPIC_API_KEY,
+                   'anthropic-version': '2023-06-01',
                    'content-type': 'application/json' },
         body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300,
                                system: SYS, messages: [{ role: 'user', content: message }] }),
@@ -253,5 +267,34 @@ async function llm(message, env) {
       if (d?.content?.[0]?.text) return d.content[0].text;
     } catch { /* fall through */ }
   }
+
+  // 3. OpenAI GPT-4o-mini
+  if (env?.OPENAI_API_KEY) {
+    const reply = await openAICompat(
+      'https://api.openai.com/v1/chat/completions',
+      env.OPENAI_API_KEY,
+      'gpt-4o-mini',
+      message,
+    );
+    if (reply) return reply;
+  }
+
   return 'Hmm, I no fully understand wetin you mean. Try: *check my balance*, *buy 500 airtime*, or *send 2k to 08012345678*.';
+}
+
+async function openAICompat(url, apiKey, model, message) {
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`,
+                 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model, max_tokens: 300,
+        messages: [{ role: 'system', content: SYS },
+                   { role: 'user',   content: message }],
+      }),
+    });
+    const d = await r.json();
+    return d?.choices?.[0]?.message?.content || '';
+  } catch { return ''; }
 }
