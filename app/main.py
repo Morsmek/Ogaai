@@ -142,23 +142,44 @@ async def health():
     }
 
 
-# ─── Test endpoint (dev only) ─────────────────────────────────────────────────
+# ─── Chat API (webapp) ───────────────────────────────────────────────────────
+
+@app.post("/chat")
+async def chat(request: Request):
+    """Web chat: POST {"message": "...", "session_id": "..."} → {"reply": "..."}"""
+    body       = await request.json()
+    text       = body.get("message", "").strip()
+    session_id = body.get("session_id", "web_user")
+    if not text:
+        return JSONResponse({"reply": "Abeg type something na!", "intent": "UNKNOWN"})
+    parsed = parse(text)
+    action = await dispatch(parsed, session_id)
+    reply  = await build_reply(parsed, action, text)
+    return {
+        "reply":      reply,
+        "intent":     parsed.intent,
+        "confidence": parsed.confidence,
+        "flags":      parsed.flags,
+    }
+
+
+# ─── Test endpoint (dev/debug) ────────────────────────────────────────────────
 
 @app.post("/test")
 async def test_parse(request: Request):
-    """Local dev: POST {"message": "..."} to test the pipeline without WhatsApp."""
+    """Debug: POST {"message": "..."} → full parse details."""
     body   = await request.json()
     text   = body.get("message", "")
     parsed = parse(text)
     action = await dispatch(parsed, "test_user")
     reply  = await build_reply(parsed, action, text)
     return {
-        "input":   text,
-        "intent":  parsed.intent,
-        "amount":  parsed.amount,
-        "network": parsed.network,
-        "phone":   parsed.phone,
-        "flags":   parsed.flags,
+        "input":      text,
+        "intent":     parsed.intent,
+        "amount":     parsed.amount,
+        "network":    parsed.network,
+        "phone":      parsed.phone,
+        "flags":      parsed.flags,
         "confidence": parsed.confidence,
-        "reply":   reply,
+        "reply":      reply,
     }

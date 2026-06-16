@@ -3,365 +3,421 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OgaAI — Your Pidgin WhatsApp Money Bot</title>
+  <title>OgaAI — Your Pidgin Money Assistant</title>
   <style>
     :root {
       --green-dark:  #1a5c2e;
-      --green-mid:   #2a8a45;
+      --green-mid:   #25883f;
       --green-light: #3ab55e;
+      --green-bubble:#dcf8c6;
       --white:       #ffffff;
-      --bg:          #f4f7f4;
-      --card:        #ffffff;
-      --text:        #1a2e1a;
-      --muted:       #6b826b;
-      --border:      #d4e8d4;
-      --accent:      #e6f4ea;
+      --bg-chat:     #e5ddd5;
+      --bg-header:   #1a5c2e;
+      --bg-input:    #f0f0f0;
+      --text:        #111;
+      --muted:       #667;
+      --shadow:      rgba(0,0,0,.12);
+      --radius:      18px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
+    html, body {
+      height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
+      background: var(--bg-chat);
       color: var(--text);
-      line-height: 1.6;
+    }
+
+    /* ── SHELL ─────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      background: var(--white);
+      box-shadow: 0 0 40px var(--shadow);
     }
 
     /* ── HEADER ────────────────────────────────────── */
-    header {
-      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
-      color: var(--white);
-      padding: 40px 24px 60px;
-      text-align: center;
-    }
-
-    header img.logo {
-      width: 96px;
-      height: 96px;
-      border-radius: 22px;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    }
-
-    header h1 {
-      font-size: 2.6rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-    }
-
-    header p.tagline {
-      margin-top: 8px;
-      font-size: 1.1rem;
-      opacity: 0.88;
-    }
-
-    /* ── HERO WAVE ─────────────────────────────────── */
-    .wave {
-      margin-top: -2px;
-      fill: var(--bg);
-    }
-
-    /* ── MAIN CONTENT ──────────────────────────────── */
-    main {
-      max-width: 860px;
-      margin: -32px auto 0;
-      padding: 0 20px 60px;
-    }
-
-    /* ── CARDS ─────────────────────────────────────── */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px 32px;
-      margin-bottom: 24px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-    }
-
-    .card h2 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--green-dark);
-      margin-bottom: 16px;
-    }
-
-    /* ── COMMAND TABLE ─────────────────────────────── */
-    .cmd-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-    .cmd-table th {
-      background: var(--accent);
-      color: var(--green-dark);
-      text-align: left;
-      padding: 10px 14px;
-      font-weight: 600;
-    }
-    .cmd-table td { padding: 10px 14px; border-top: 1px solid var(--border); }
-    .cmd-table tr:hover td { background: var(--accent); }
-    .cmd-table code {
-      background: #e8f5e9;
-      padding: 2px 7px;
-      border-radius: 5px;
-      font-size: 0.88rem;
-      color: var(--green-dark);
-    }
-    .badge {
-      display: inline-block;
-      background: var(--green-light);
+    #header {
+      background: var(--bg-header);
       color: #fff;
-      font-size: 0.72rem;
-      font-weight: 700;
-      border-radius: 4px;
-      padding: 2px 6px;
-      letter-spacing: 0.3px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      user-select: none;
     }
 
-    /* ── ARCHITECTURE ──────────────────────────────── */
-    .arch {
-      background: #0d1f0d;
-      color: #7eff8b;
-      border-radius: 12px;
-      padding: 20px 24px;
-      font-family: "Courier New", Courier, monospace;
-      font-size: 0.85rem;
-      line-height: 1.8;
-      overflow-x: auto;
+    #header img {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.35);
+      object-fit: cover;
     }
 
-    /* ── PLAYGROUNDS ───────────────────────────────── */
-    #playground { display: flex; gap: 10px; flex-wrap: wrap; }
-    #playground input {
+    #header .info { flex: 1; }
+    #header .info h1 { font-size: 1.05rem; font-weight: 700; }
+    #header .info p  { font-size: .78rem; opacity: .82; margin-top: 1px; }
+
+    #header .status-dot {
+      width: 10px; height: 10px;
+      background: #4eff7a;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 6px #4eff7a;
+    }
+
+    /* ── CHAT WINDOW ───────────────────────────────── */
+    #chat {
       flex: 1;
-      min-width: 200px;
-      padding: 11px 16px;
-      border: 2px solid var(--border);
-      border-radius: 10px;
-      font-size: 1rem;
-      outline: none;
-      transition: border-color 0.2s;
+      overflow-y: auto;
+      padding: 16px 14px;
+      background: var(--bg-chat);
+      background-image:
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      scroll-behavior: smooth;
     }
-    #playground input:focus { border-color: var(--green-mid); }
-    #playground button {
-      padding: 11px 22px;
-      background: var(--green-mid);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
+
+    /* ── DATE DIVIDER ──────────────────────────────── */
+    .date-divider {
+      text-align: center;
+      margin: 12px 0;
     }
-    #playground button:hover { background: var(--green-dark); }
-    #result {
-      margin-top: 14px;
-      padding: 16px;
-      background: var(--accent);
-      border-radius: 10px;
-      font-size: 0.95rem;
-      display: none;
-    }
-    #result .intent-badge {
-      display: inline-block;
-      background: var(--green-dark);
-      color: #fff;
-      border-radius: 6px;
-      padding: 2px 10px;
-      font-weight: 700;
-      font-size: 0.82rem;
-      margin-bottom: 8px;
-    }
-    #result .reply-text {
-      background: #fff;
+    .date-divider span {
+      background: rgba(225,245,254,.85);
+      color: var(--muted);
+      font-size: .72rem;
+      padding: 3px 10px;
       border-radius: 8px;
-      padding: 12px 16px;
-      border-left: 4px solid var(--green-mid);
+    }
+
+    /* ── BUBBLES ───────────────────────────────────── */
+    .bubble-row {
+      display: flex;
+      margin-bottom: 4px;
+    }
+    .bubble-row.user  { justify-content: flex-end; }
+    .bubble-row.bot   { justify-content: flex-start; }
+
+    .bubble {
+      max-width: 78%;
+      padding: 8px 12px 6px;
+      border-radius: var(--radius);
+      font-size: .93rem;
+      line-height: 1.45;
+      position: relative;
+      box-shadow: 0 1px 2px var(--shadow);
+      word-break: break-word;
       white-space: pre-wrap;
     }
 
-    /* ── OPEN SOURCE PILLS ─────────────────────────── */
-    .repo-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 12px;
+    .bubble-row.user .bubble {
+      background: var(--green-bubble);
+      border-bottom-right-radius: 4px;
     }
-    .repo-pill {
-      background: var(--accent);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-      font-size: 0.88rem;
+    .bubble-row.bot .bubble {
+      background: var(--white);
+      border-bottom-left-radius: 4px;
     }
-    .repo-pill strong { display: block; color: var(--green-dark); margin-bottom: 4px; }
-    .repo-pill span { color: var(--muted); font-size: 0.82rem; }
 
-    /* ── FOOTER ────────────────────────────────────── */
-    footer {
-      text-align: center;
-      padding: 32px 20px;
+    .bubble .ts {
+      display: block;
+      text-align: right;
+      font-size: .68rem;
       color: var(--muted);
-      font-size: 0.85rem;
-      border-top: 1px solid var(--border);
+      margin-top: 3px;
     }
-    footer a { color: var(--green-mid); text-decoration: none; }
+
+    /* intent tag inside bot bubbles */
+    .bubble .intent-tag {
+      display: inline-block;
+      background: var(--green-mid);
+      color: #fff;
+      font-size: .65rem;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-bottom: 4px;
+      letter-spacing: .3px;
+    }
+
+    /* ── TYPING INDICATOR ──────────────────────────── */
+    #typing {
+      display: none;
+      justify-content: flex-start;
+      margin-bottom: 4px;
+    }
+    #typing .bubble {
+      background: var(--white);
+      border-bottom-left-radius: 4px;
+      padding: 10px 14px;
+    }
+    .dot-row { display: flex; gap: 4px; align-items: center; }
+    .dot {
+      width: 7px; height: 7px;
+      background: #999;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: .2s; }
+    .dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes bounce {
+      0%,80%,100% { transform: translateY(0); }
+      40%          { transform: translateY(-6px); }
+    }
+
+    /* ── QUICK CHIPS ───────────────────────────────── */
+    #chips {
+      display: flex;
+      gap: 8px;
+      padding: 8px 14px;
+      overflow-x: auto;
+      background: var(--white);
+      border-top: 1px solid #eee;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    #chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0;
+      padding: 6px 13px;
+      background: #e8f5e9;
+      color: var(--green-dark);
+      border: 1px solid #c8e6c9;
+      border-radius: 999px;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .chip:hover { background: #c8e6c9; }
+
+    /* ── INPUT BAR ─────────────────────────────────── */
+    #input-bar {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding: 10px 14px 14px;
+      background: var(--white);
+      border-top: 1px solid #eee;
+      flex-shrink: 0;
+    }
+
+    #msg-input {
+      flex: 1;
+      resize: none;
+      border: 1.5px solid #ddd;
+      border-radius: 24px;
+      padding: 10px 16px;
+      font-size: .95rem;
+      font-family: inherit;
+      outline: none;
+      line-height: 1.4;
+      max-height: 120px;
+      overflow-y: auto;
+      transition: border-color .2s;
+    }
+    #msg-input:focus { border-color: var(--green-mid); }
+    #msg-input::placeholder { color: #aaa; }
+
+    #send-btn {
+      width: 44px; height: 44px;
+      flex-shrink: 0;
+      background: var(--green-mid);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s;
+    }
+    #send-btn:hover  { background: var(--green-dark); }
+    #send-btn:active { transform: scale(.93); }
+    #send-btn svg { width: 20px; height: 20px; fill: #fff; }
+
+    /* ── WELCOME CARD ──────────────────────────────── */
+    #welcome {
+      background: rgba(255,255,255,.92);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin: 8px 4px 16px;
+      box-shadow: 0 1px 4px var(--shadow);
+    }
+    #welcome h2 {
+      font-size: 1rem;
+      color: var(--green-dark);
+      margin-bottom: 6px;
+    }
+    #welcome ul {
+      list-style: none;
+      padding: 0;
+      font-size: .88rem;
+      color: #444;
+      line-height: 1.9;
+    }
+    #welcome ul li::before { content: "•  "; color: var(--green-mid); font-weight: 700; }
   </style>
 </head>
 <body>
 
-<header>
-  <img class="logo" src="/static/logo.png" alt="OgaAI Logo" />
-  <h1>OgaAI</h1>
-  <p class="tagline">Your personal WhatsApp money assistant wey sabi Pidgin 🇳🇬</p>
-</header>
+<div id="app">
 
-<svg class="wave" viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg">
-  <path d="M0,40 C360,80 1080,0 1440,40 L1440,60 L0,60 Z"/>
-</svg>
-
-<main>
-
-  <!-- What It Does -->
-  <div class="card">
-    <h2>What OgaAI Can Do</h2>
-    <table class="cmd-table">
-      <thead>
-        <tr><th>You say…</th><th>OgaAI understands</th><th>Status</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>abeg check my balance</code></td><td>CHECK_BALANCE</td><td><span class="badge">LIVE</span></td></tr>
-        <tr><td><code>buy me 500 naira airtime</code></td><td>BUY_AIRTIME (₦500)</td><td><span class="badge">LIVE</span></td></tr>
-        <tr><td><code>get me 1000 naira MTN data</code></td><td>BUY_DATA (₦1000, MTN)</td><td><span class="badge">LIVE</span></td></tr>
-        <tr><td><code>send 2k to my guy</code></td><td>SEND_MONEY (₦2000)</td><td><span class="badge">LIVE</span></td></tr>
-        <tr><td><code>jẹ kí n san owo ina mi</code></td><td>PAY_BILL (Yoruba)</td><td><span class="badge" style="background:#999">V2</span></td></tr>
-        <tr><td><code>how far</code></td><td>GREETING</td><td><span class="badge">LIVE</span></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Live Playground -->
-  <div class="card">
-    <h2>Try the Parser</h2>
-    <p style="margin-bottom:14px;color:var(--muted);font-size:.93rem;">Type any message below — see how OgaAI understands it.</p>
-    <div id="playground">
-      <input id="msgInput" type="text" placeholder="E.g. abeg check my balance" />
-      <button onclick="testMessage()">Send</button>
+  <!-- HEADER -->
+  <div id="header">
+    <img src="/static/logo.png" alt="OgaAI" />
+    <div class="info">
+      <h1>OgaAI</h1>
+      <p>Your Pidgin money assistant</p>
     </div>
-    <div id="result">
-      <div class="intent-badge" id="intentLabel">—</div>
-      <div class="reply-text" id="replyText"></div>
+    <div class="status-dot" title="Online"></div>
+  </div>
+
+  <!-- CHAT WINDOW -->
+  <div id="chat">
+    <div class="date-divider"><span>Today</span></div>
+
+    <!-- Welcome card -->
+    <div id="welcome">
+      <h2>How far! I be OgaAI 🤖🇳🇬</h2>
+      <ul>
+        <li>Check your balance</li>
+        <li>Buy airtime or data (MTN, Airtel, Glo, 9mobile)</li>
+        <li>Send money to anyone</li>
+        <li>Pay bills (coming soon)</li>
+      </ul>
+      <p style="font-size:.8rem;color:var(--muted);margin-top:8px;">Type in English, Pidgin, or Yoruba — I sabi all!</p>
     </div>
-  </div>
 
-  <!-- Architecture -->
-  <div class="card">
-    <h2>Architecture</h2>
-    <pre class="arch">User (WhatsApp)
-      │
-      ▼
-FastAPI Webhook (/webhook)
-      │
-      ▼
-Intent Parser (app/intent_parser.py)
-  ├── Regex/keyword rules  (fast, free)
-  └── Pidgin + Yoruba normalisation layer
-      │
-      ▼
-Action Backend (app/actions.py)
-  ├── CHECK_BALANCE
-  ├── BUY_AIRTIME   ← cowriesys/airtime
-  ├── BUY_DATA      ← cowriesys/airtime
-  ├── SEND_MONEY    ← tomiiide/nigerian-banks
-  └── PAY_BILL      (coming in V2)
-      │
-      ▼
-Response Engine (app/response_engine.py)
-  ├── Direct action message  (fast path)
-  └── LLM: Claude Haiku / GPT-4o-mini fallback
-      │
-      ▼
-WhatsApp Cloud API → User</pre>
-  </div>
-
-  <!-- Open Source Foundation -->
-  <div class="card">
-    <h2>Open Source Foundation</h2>
-    <div class="repo-grid">
-      <div class="repo-pill">
-        <strong>LPMatrix/owo</strong>
-        <span>Nigerian NLU intent parser</span>
-      </div>
-      <div class="repo-pill">
-        <strong>saheedniy02/Llama3-8b-Naija_v1</strong>
-        <span>Llama 3 fine-tuned on Nigerian data</span>
-      </div>
-      <div class="repo-pill">
-        <strong>cowriesys/airtime</strong>
-        <span>Airtime &amp; data top-up API</span>
-      </div>
-      <div class="repo-pill">
-        <strong>tomiiide/nigerian-banks</strong>
-        <span>Nigerian bank codes dataset</span>
+    <!-- Typing indicator -->
+    <div id="typing" class="bubble-row bot">
+      <div class="bubble">
+        <div class="dot-row">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Setup -->
-  <div class="card">
-    <h2>Quick Setup</h2>
-    <pre style="background:#f8fbf8;border-radius:8px;padding:16px;font-size:.88rem;overflow-x:auto;border:1px solid var(--border)"># 1. Install dependencies
-pip install -r requirements.txt
-
-# 2. Configure environment
-cp .env.example .env
-# Fill in WHATSAPP_TOKEN and WHATSAPP_PHONE_ID
-
-# 3. Run
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-# 4. Expose to WhatsApp (dev)
-ngrok http 8000
-# Then set webhook: https://&lt;your-ngrok&gt;.ngrok.io/webhook
-# Verify token: ogaai_verify_2024</pre>
+  <!-- QUICK CHIPS -->
+  <div id="chips">
+    <div class="chip" onclick="sendChip('abeg check my balance')">💰 Check balance</div>
+    <div class="chip" onclick="sendChip('buy me 500 naira airtime')">📱 Buy airtime</div>
+    <div class="chip" onclick="sendChip('get me 1000 naira MTN data')">🌐 Buy data</div>
+    <div class="chip" onclick="sendChip('send 2k to 08012345678')">💸 Send money</div>
+    <div class="chip" onclick="sendChip('how far')">👋 Greet</div>
   </div>
 
-</main>
+  <!-- INPUT BAR -->
+  <div id="input-bar">
+    <textarea id="msg-input" rows="1" placeholder="Type a message…" maxlength="500"></textarea>
+    <button id="send-btn" onclick="sendMessage()" aria-label="Send">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+      </svg>
+    </button>
+  </div>
 
-<footer>
-  OgaAI &mdash; Built for the 220 million Nigerians who deserve a bot that speaks their language.<br/>
-  <a href="/health">Health check</a> &middot; <a href="/docs">API docs</a>
-</footer>
+</div>
 
 <script>
-  async function testMessage() {
-    const input = document.getElementById('msgInput');
-    const msg = input.value.trim();
-    if (!msg) return;
+  const chat     = document.getElementById('chat');
+  const input    = document.getElementById('msg-input');
+  const typing   = document.getElementById('typing');
+  const SESSION  = 'web_' + Math.random().toString(36).slice(2, 10);
 
-    const btn = document.querySelector('#playground button');
-    btn.textContent = 'Sending…';
-    btn.disabled = true;
+  // ── auto-resize textarea ───────────────────────────
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
 
-    try {
-      const res = await fetch('/test', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({message: msg})
-      });
-      const data = await res.json();
-      document.getElementById('intentLabel').textContent =
-        data.intent + (data.confidence ? ` (${Math.round(data.confidence * 100)}%)` : '');
-      document.getElementById('replyText').textContent = data.reply;
-      document.getElementById('result').style.display = 'block';
-    } catch(e) {
-      document.getElementById('replyText').textContent = 'Error: ' + e.message;
-      document.getElementById('result').style.display = 'block';
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
+  });
 
-    btn.textContent = 'Send';
-    btn.disabled = false;
+  // ── send chip shortcut ─────────────────────────────
+  function sendChip(text) {
+    input.value = text;
+    sendMessage();
   }
 
-  document.getElementById('msgInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') testMessage();
-  });
+  // ── timestamp helper ──────────────────────────────
+  function nowTime() {
+    return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  // ── append user bubble ────────────────────────────
+  function appendUser(text) {
+    const row = document.createElement('div');
+    row.className = 'bubble-row user';
+    row.innerHTML = `<div class="bubble">${escHtml(text)}<span class="ts">${nowTime()}</span></div>`;
+    chat.insertBefore(row, typing);
+    scrollBottom();
+  }
+
+  // ── append bot bubble ─────────────────────────────
+  function appendBot(reply, intent) {
+    const row = document.createElement('div');
+    row.className = 'bubble-row bot';
+    const tag = (intent && intent !== 'UNKNOWN')
+      ? `<span class="intent-tag">${intent}</span><br/>` : '';
+    row.innerHTML = `<div class="bubble">${tag}${escHtml(reply)}<span class="ts">${nowTime()} ✓</span></div>`;
+    chat.insertBefore(row, typing);
+    scrollBottom();
+  }
+
+  function scrollBottom() {
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function escHtml(str) {
+    return str
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/\n/g,'<br/>');
+  }
+
+  // ── main send ─────────────────────────────────────
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+
+    appendUser(text);
+
+    // show typing indicator
+    typing.style.display = 'flex';
+    scrollBottom();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: text, session_id: SESSION}),
+      });
+      const data = await res.json();
+      typing.style.display = 'none';
+      appendBot(data.reply, data.intent);
+    } catch (err) {
+      typing.style.display = 'none';
+      appendBot('Wahala dey o — server no respond. Try again.', null);
+    }
+  }
 </script>
 
 </body>
