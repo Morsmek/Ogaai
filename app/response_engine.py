@@ -96,16 +96,44 @@ async def _call_claude(user_message: str) -> str:
         return ""
 
 
+async def _call_pollinations(user_message: str) -> str:
+    """
+    Pollinations.ai — completely free, no account, no API key.
+    https://text.pollinations.ai
+    """
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(
+                "https://text.pollinations.ai/",
+                json={
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user",   "content": user_message},
+                    ],
+                    "model":   "openai",
+                    "private": True,
+                },
+            )
+            text = r.text.strip()
+            return text if text else ""
+    except Exception:
+        return ""
+
+
 async def _llm_reply(user_message: str) -> str:
     """
-    LLM fallback chain — free tiers first, paid last.
-    Set whichever key(s) you have; first working one wins.
+    LLM fallback chain — zero-cost options first, paid last.
 
-    Free:  Groq → Gemini → OpenRouter → Cerebras
-    Paid:  DeepSeek → Anthropic → OpenAI
+    No key needed:  Pollinations.ai
+    Free tier keys: Groq → Gemini → OpenRouter → Cerebras
+    Paid keys:      DeepSeek → Anthropic → OpenAI
     """
-    _oc = _call_openai_compat  # shorthand
+    # 0. Pollinations — no key, no account, truly free
+    reply = await _call_pollinations(user_message)
+    if reply:
+        return reply
 
+    _oc = _call_openai_compat
     free = [
         ("GROQ_API_KEY",       "https://api.groq.com/openai/v1/chat/completions",                         "llama-3.1-8b-instant"),
         ("GEMINI_API_KEY",     "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "gemini-2.0-flash-lite"),
@@ -113,8 +141,8 @@ async def _llm_reply(user_message: str) -> str:
         ("CEREBRAS_API_KEY",   "https://api.cerebras.ai/v1/chat/completions",                             "llama3.1-8b"),
     ]
     paid = [
-        ("DEEPSEEK_API_KEY",   "https://api.deepseek.com/v1/chat/completions",   "deepseek-chat"),
-        ("OPENAI_API_KEY",     "https://api.openai.com/v1/chat/completions",      "gpt-4o-mini"),
+        ("DEEPSEEK_API_KEY", "https://api.deepseek.com/v1/chat/completions", "deepseek-chat"),
+        ("OPENAI_API_KEY",   "https://api.openai.com/v1/chat/completions",   "gpt-4o-mini"),
     ]
 
     for env_var, url, model in free + paid:
@@ -124,7 +152,6 @@ async def _llm_reply(user_message: str) -> str:
             if reply:
                 return reply
 
-    # Anthropic uses a different request format
     reply = await _call_claude(user_message)
     if reply:
         return reply

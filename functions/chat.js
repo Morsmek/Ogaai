@@ -6,11 +6,11 @@
  *   app/actions.py         → dispatch()
  *   app/response_engine.py → buildReply()
  *
- * LLM priority (free first):
- *   1. Cloudflare Workers AI  — free, no key, Llama 3.1 8B (env.AI binding)
- *   2. DeepSeek               — set DEEPSEEK_API_KEY in CF Pages env
- *   3. Anthropic Claude Haiku — set ANTHROPIC_API_KEY in CF Pages env
- *   4. OpenAI GPT-4o-mini     — set OPENAI_API_KEY in CF Pages env
+ * LLM priority (zero-cost first, paid last):
+ *   0. Pollinations.ai        — no key, no account, truly free
+ *   1. Cloudflare Workers AI  — no key, Llama 3.1 8B (enable AI binding in CF dashboard)
+ *   2. Groq / Gemini / OpenRouter / Cerebras — free-tier keys
+ *   3. DeepSeek / Anthropic / OpenAI         — paid keys
  */
 
 export async function onRequestPost(context) {
@@ -259,7 +259,21 @@ const PAID_PROVIDERS = [
 ];
 
 async function llm(message, env) {
-  // CF Workers AI — always free, no key needed
+  // 0. Pollinations.ai — no key, no account, truly free
+  try {
+    const r = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'system', content: SYS }, { role: 'user', content: message }],
+        model: 'openai', private: true,
+      }),
+    });
+    const text = (await r.text()).trim();
+    if (text) return text;
+  } catch { /* fall through */ }
+
+  // CF Workers AI — free, no key needed (enable AI binding in CF Pages dashboard)
   if (env?.AI) {
     try {
       const r = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
